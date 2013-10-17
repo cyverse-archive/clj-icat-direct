@@ -5,5 +5,4 @@
             :url "http://github.com/iPlantCollaborativeOpenSource/clj-icat-direct/blob/master/LICENSE"}
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [korma "0.3.0-RC5"]
-                 [org.postgresql/postgresql "9.2-1002-jdbc4"]
-                 [slingshot "0.10.3"]])
+                 [org.postgresql/postgresql "9.2-1002-jdbc4"]])
