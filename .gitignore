@@ -16,5 +16,6 @@
 /donkey
 /donkey.spec
 /donkey*.tar.gz
+/.lein-repl-history
 *~
 \#*
