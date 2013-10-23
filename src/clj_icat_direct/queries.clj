@@ -57,7 +57,8 @@
            parent
      WHERE u.user_id = user_lookup.user_id
        AND c.parent_coll_name = parent.coll_name
-       AND c.coll_type != 'linkPoint'"
+       AND c.coll_type != 'linkPoint'
+  ORDER BY base_name ASC"
    
    :count-files-in-folder
    "WITH user_lookup AS ( SELECT u.user_id as user_id FROM r_user_main u WHERE u.user_name = ?),
