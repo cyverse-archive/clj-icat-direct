@@ -1,4 +1,5 @@
 (ns clj-icat-direct.icat
+  (:use [clojure.java.io :only [file]])
   (:require [clojure.string :as string]
             [korma.db :as db]
             [korma.core :as k]
@@ -50,10 +51,31 @@
   [user folder-path]
   (-> (run-simple-query :count-items-in-folder user folder-path) first :count))
 
+(defn folder-permissions-for-user
+  "Returns the highest permission value for the specified user on the folder."
+  [user folder-path]
+  (let [sorter (partial sort-by :access_type_id)]
+    (-> (run-simple-query :folder-permissions-for-user user folder-path) 
+      sorter last :access_type_id)))
+
+(defn file-permissions-for-user
+  "Returns the highest permission value for the specified user on the file."
+  [user file-path]
+  (let [sorter   (partial sort-by :access_type_id)
+        dirname  #(.getParent (file %))
+        basename #(.getName (file %))]
+    (-> (run-simple-query :file-permissions-for-user user (dirname file-path) (basename file-path))
+      sorter last :access_type_id)))
+
+(defn- add-permission
+  [user {:keys [full_path type] :as item-map} ]
+  (let [perm-func (if (= type "dataobject") file-permissions-for-user folder-permissions-for-user)]
+    (assoc item-map :access_type_id (perm-func user full_path))))
+
 (defn list-folders-in-folder
   "Returns a listing of the folders contained in the specified folder that the user has access to."
   [user folder-path]
-  (run-simple-query :list-folders-in-folder user folder-path))
+  (map (partial add-permission user) (run-simple-query :list-folders-in-folder user folder-path)))
 
 (def sort-columns
   {:type      "p.type"
@@ -78,6 +100,7 @@
   
   (let [sc    (get sort-columns sort-column)
         so    (get sort-orders sort-order)
-        query (format (:paged-folder-listing q/queries) sc so)]
-    (run-query-string query user folder-path limit offset)))
+        query (format (:paged-folder-listing q/queries) sc so)
+        p     (partial add-permission user)]
+    (map p (run-query-string query user folder-path limit offset))))
 
