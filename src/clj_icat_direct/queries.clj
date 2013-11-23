@@ -41,14 +41,8 @@
   {:count-items-in-folder
    "WITH user_lookup AS ( SELECT u.user_id as user_id FROM r_user_main u WHERE u.user_name = ?),
          parent AS ( SELECT c.coll_id as coll_id, c.coll_name as coll_name FROM r_coll_main c WHERE c.coll_name = ? )
-    SELECT COUNT(p.*)
-      FROM ( SELECT c.coll_name      as dir_name,
-                    d.data_path      as full_path,
-                    d.data_name      as base_name,
-                    d.create_ts      as create_ts, 
-                    d.modify_ts      as modify_ts,
-                    'dataobject'     as type,
-                    d.data_size      as data_size
+    SELECT COUNT(p.*) AS total
+      FROM ( SELECT d.data_id
                FROM r_data_main d
                JOIN r_coll_main c ON c.coll_id = d.coll_id 
                JOIN r_objt_access a ON d.data_id = a.object_id
@@ -58,13 +52,7 @@
               WHERE u.user_id IN ( SELECT g.group_user_id FROM r_user_main u JOIN r_user_group g ON g.user_id = u.user_id, user_lookup WHERE u.user_id = user_lookup.user_id )
                 AND c.coll_id = parent.coll_id
               UNION
-             SELECT c.parent_coll_name as dir_name,
-                    c.coll_name        as full_path,
-                    regexp_replace(c.coll_name, '.*/', '') as base_name,
-                    c.create_ts        as create_ts, 
-                    c.modify_ts        as modify_ts,
-                    'collection'       as type,
-                    0                  as data_size
+             SELECT c.coll_id
                FROM r_coll_main c 
                JOIN r_objt_access a ON c.coll_id = a.object_id
                JOIN r_user_main u ON a.user_id = u.user_id,

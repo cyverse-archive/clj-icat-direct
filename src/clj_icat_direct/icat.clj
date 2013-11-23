@@ -49,7 +49,7 @@
 (defn number-of-items-in-folder
   "Returns the total number of files and folders in the specified folder that the user has access to."
   [user folder-path]
-  (-> (run-simple-query :count-items-in-folder user folder-path) first :count))
+  (first (run-simple-query :count-items-in-folder user folder-path)))
 
 (defn number-of-filtered-items-in-folder
   "Returns the total number of files and folders in the specified folder that the user has access to
