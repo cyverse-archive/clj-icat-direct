@@ -1,4 +1,41 @@
-(ns clj-icat-direct.queries)
+(ns clj-icat-direct.queries
+  (:require [clojure.string :as string]))
+
+(defn- get-folder-like-clause
+  "Returns a LIKE clause for folder paths in the count-filtered-items-in-folder query."
+  []
+  "c.coll_name LIKE ?")
+
+(defn- get-folder-path-clause
+  "Returns an equals clause for folder paths in the count-filtered-items-in-folder query."
+  []
+  "c.coll_name = ?")
+
+(defn get-filtered-paths-where-clause
+  "Returns a LIKE clause for folder paths in the count-filtered-items-in-folder query."
+  [filter-files filtered-paths]
+  (string/join " OR " (concat (repeat (count filter-files)
+                                      (get-folder-like-clause))
+                              (repeat (count filtered-paths)
+                                      (get-folder-path-clause)))))
+
+(defn filter-files->query-args
+  "Converts the list of filter-files for use as arguments in the count-filtered-items-in-folder query."
+  [filter-files]
+  (map (partial str "%/") filter-files))
+
+(defn filter-chars->sql-char-class
+  "Returns a regex character class set for use in the count-filtered-items-in-folder query
+   using the given characters."
+  [filter-chars]
+  (str "[" (string/replace filter-chars
+                           #"'|\[|\]|\\"
+                           {"\\" "\\\\"
+                            "'" "\\'"
+                            "[" "\\["
+                            "]" "\\]"})
+       "]"))
+
 
 (def queries
   {:count-items-in-folder
@@ -36,6 +73,33 @@
               WHERE u.user_id IN ( SELECT g.group_user_id FROM r_user_main u JOIN r_user_group g ON g.user_id = u.user_id, user_lookup WHERE u.user_id = user_lookup.user_id )
                 AND c.parent_coll_name = parent.coll_name
                 AND c.coll_type != 'linkPoint') AS p"
+
+   :count-filtered-items-in-folder
+   "WITH user_lookup AS ( SELECT u.user_id as user_id FROM r_user_main u WHERE u.user_name = ?),
+         parent AS ( SELECT c.coll_id as coll_id, c.coll_name as coll_name FROM r_coll_main c WHERE c.coll_name = ? )
+    SELECT COUNT(filtered.*) AS total_filtered
+      FROM ( SELECT d.data_id
+               FROM r_data_main d
+               JOIN r_coll_main c ON c.coll_id = d.coll_id
+               JOIN r_objt_access a ON d.data_id = a.object_id
+               JOIN r_user_main u ON a.user_id = u.user_id,
+                    user_lookup,
+                    parent
+              WHERE u.user_id IN ( SELECT g.group_user_id FROM r_user_main u JOIN r_user_group g ON g.user_id = u.user_id, user_lookup WHERE u.user_id = user_lookup.user_id )
+                AND c.coll_id = parent.coll_id
+                AND (d.data_name ~ ?)
+              UNION
+             SELECT c.coll_id
+               FROM r_coll_main c
+               JOIN r_objt_access a ON c.coll_id = a.object_id
+               JOIN r_user_main u ON a.user_id = u.user_id,
+                    user_lookup,
+                    parent
+              WHERE u.user_id IN ( SELECT g.group_user_id FROM r_user_main u JOIN r_user_group g ON g.user_id = u.user_id, user_lookup WHERE u.user_id = user_lookup.user_id )
+                AND c.parent_coll_name = parent.coll_name
+                AND c.coll_type != 'linkPoint'
+                AND (%s)
+           ) AS filtered"
    
    :list-folders-in-folder
    "WITH user_lookup AS ( SELECT u.user_id as user_id FROM r_user_main u WHERE u.user_name = ?),

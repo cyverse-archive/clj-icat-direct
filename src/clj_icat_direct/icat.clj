@@ -51,6 +51,20 @@
   [user folder-path]
   (-> (run-simple-query :count-items-in-folder user folder-path) first :count))
 
+(defn number-of-filtered-items-in-folder
+  "Returns the total number of files and folders in the specified folder that the user has access to
+   but should be filtered in the client."
+  [user folder-path filter-chars filter-files filtered-paths]
+  (let [filtered-path-args (concat (q/filter-files->query-args filter-files) filtered-paths)
+        query (format (:count-filtered-items-in-folder q/queries)
+                      (q/get-filtered-paths-where-clause filter-files filtered-paths))]
+    (first (apply run-query-string
+                  query
+                  user
+                  folder-path
+                  (q/filter-chars->sql-char-class filter-chars)
+                  filtered-path-args))))
+
 (defn folder-permissions-for-user
   "Returns the highest permission value for the specified user on the folder."
   [user folder-path]
