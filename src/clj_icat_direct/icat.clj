@@ -27,11 +27,11 @@
   [query-kw & args]
   (if-not (contains? q/queries query-kw)
     (throw (Exception. (str "query " query-kw " is not defined."))))
-  
+
   (k/exec-raw icat [(get q/queries query-kw) args] :results))
 
 (defn- run-query-string
-  "Runs the passed in query string. Doesn't check to see if it's defined in 
+  "Runs the passed in query string. Doesn't check to see if it's defined in
    clj-icat-direct.queries first."
   [query & args]
   (k/exec-raw icat [query args] :results))
@@ -47,20 +47,22 @@
   (-> (run-simple-query :count-folders-in-folder user folder-path) first :count))
 
 (defn number-of-items-in-folder
-  "Returns the total number of files and folders in the specified folder that the user has access to."
-  [user folder-path]
-  (first (run-simple-query :count-items-in-folder user folder-path)))
+  "Returns the total number of files and folders in the specified folder that the user has access
+   to."
+  [user zone folder-path]
+  (first (run-simple-query :count-items-in-folder user zone folder-path)))
 
 (defn number-of-filtered-items-in-folder
   "Returns the total number of files and folders in the specified folder that the user has access to
    but should be filtered in the client."
-  [user folder-path filter-chars filter-files filtered-paths]
+  [user zone folder-path filter-chars filter-files filtered-paths]
   (let [filtered-path-args (concat (q/filter-files->query-args filter-files) filtered-paths)
         query (format (:count-filtered-items-in-folder q/queries)
                       (q/get-filtered-paths-where-clause filter-files filtered-paths))]
     (first (apply run-query-string
                   query
                   user
+                  zone
                   folder-path
                   (q/filter-chars->sql-char-class filter-chars)
                   filtered-path-args))))
@@ -69,7 +71,7 @@
   "Returns the highest permission value for the specified user on the folder."
   [user folder-path]
   (let [sorter (partial sort-by :access_type_id)]
-    (-> (run-simple-query :folder-permissions-for-user user folder-path) 
+    (-> (run-simple-query :folder-permissions-for-user user folder-path)
       sorter last :access_type_id)))
 
 (defn file-permissions-for-user
@@ -105,16 +107,15 @@
 
 (defn paged-folder-listing
   "Returns a page from a folder listing."
-  [user folder-path sort-column sort-order limit offset]
+  [user zone folder-path sort-column sort-order limit offset]
   (if-not (contains? sort-columns sort-column)
     (throw (Exception. (str "Invalid sort-column " sort-column))))
-  
+
   (if-not (contains? sort-orders sort-order)
     (throw (Exception. (str "Invalid sort-order " sort-order))))
-  
+
   (let [sc    (get sort-columns sort-column)
         so    (get sort-orders sort-order)
         query (format (:paged-folder-listing q/queries) sc so)
         p     (partial add-permission user)]
-    (map p (run-query-string query user folder-path limit offset))))
-
+    (map p (run-query-string query user zone folder-path limit offset))))
