@@ -39,27 +39,30 @@
 
 (def queries
   {:count-items-in-folder
-   "WITH
-       user_groups AS ( SELECT g.*
-                          FROM r_user_main u
-                          JOIN r_user_group g ON g.user_id = u.user_id
-                         WHERE u.user_name = ?
-                           AND u.zone_name = ? ),
+   "WITH user_groups AS ( SELECT g.*
+                            FROM r_user_main u
+                            JOIN r_user_group g ON g.user_id = u.user_id
+                           WHERE u.user_name = ?
+                             AND u.zone_name = ? ),
 
-       parent      AS ( SELECT * from r_coll_main
-                         WHERE coll_name = ? )
+         parent      AS ( SELECT * from r_coll_main
+                           WHERE coll_name = ? ),
+
+         data_objs   AS ( SELECT d.* FROM r_data_main d
+                            JOIN r_coll_main c ON c.coll_id = d.coll_id
+                           WHERE c.coll_id = ( SELECT coll_id FROM parent ))
 
     SELECT count(*) AS total
-      FROM ( SELECT d.data_id FROM r_data_main d
-               JOIN r_coll_main c ON c.coll_id = d.coll_id
-               JOIN r_objt_access a ON d.data_id = a.object_id
-              WHERE c.coll_id = ( SELECT coll_id FROM parent )
-                AND a.user_id IN ( SELECT group_user_id FROM user_groups )
+      FROM ( SELECT d.data_id FROM r_objt_access a
+               JOIN data_objs d ON a.object_id = d.data_id
+              WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
+                AND a.object_id IN ( SELECT data_id from data_objs )
               UNION
              SELECT c.coll_id FROM r_coll_main c
                JOIN r_objt_access a ON c.coll_id = a.object_id
                JOIN parent p ON c.parent_coll_name = p.coll_name
-              WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )) AS contents"
+              WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
+                AND c.coll_type != 'linkPoint' ) AS contents"
 
    :count-filtered-items-in-folder
    "WITH user_groups AS ( SELECT g.* FROM r_user_main u
@@ -70,17 +73,18 @@
          parent      AS ( SELECT * from r_coll_main
                            WHERE coll_name = ? )
 
+         data_objs   AS ( SELECT d.* FROM r_data_main d
+                            JOIN r_coll_main c ON c.coll_id = d.coll_id
+                           WHERE c.coll_id = ( SELECT coll_id FROM parent ))
+
     SELECT count(*) AS total_filtered
-      FROM ( SELECT d.data_id
-               FROM r_data_main d
-               JOIN r_coll_main c ON c.coll_id = d.coll_id
-               JOIN r_objt_access a ON d.data_id = a.object_id
-              WHERE c.coll_id = ( SELECT coll_id FROM parent )
-                AND a.user_id IN ( SELECT group_user_id FROM user_groups )
+      FROM ( SELECT d.data_id FROM r_objt_access a
+               JOIN data_objs d ON a.object_id = d.data_id
+              WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
+                AND a.object_id IN ( SELECT data_id FROM data_objs )
                 AND d.data_name ~ ?
               UNION
-             SELECT c.coll_id
-               FROM r_coll_main c
+             SELECT c.coll_id FROM r_coll_main c
                JOIN r_objt_access a ON c.coll_id = a.object_id
                JOIN parent p ON c.parent_coll_name = p.coll_name
               WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
@@ -88,58 +92,60 @@
                 AND (%s)) AS filtered"
 
    :list-folders-in-folder
-   "WITH user_lookup AS ( SELECT u.user_id as user_id FROM r_user_main u WHERE u.user_name = ?),
-         parent AS ( SELECT c.coll_id as coll_id, c.coll_name as coll_name FROM r_coll_main c WHERE c.coll_name = ? )
-    SELECT DISTINCT c.parent_coll_name as dir_name,
-           c.coll_name        as full_path,
+   "WITH user_groups AS ( SELECT g.* FROM r_user_main u
+                            JOIN r_user_group g ON g.user_id = u.user_id
+                           WHERE u.user_name = ?
+                             AND u.zone_name = ? ),
+
+         parent      AS ( SELECT * from r_coll_main
+                           WHERE coll_name = ? )
+
+    SELECT c.parent_coll_name                     as dir_name,
+           c.coll_name                            as full_path,
            regexp_replace(c.coll_name, '.*/', '') as base_name,
-           c.create_ts        as create_ts,
-           c.modify_ts        as modify_ts,
-           'collection'       as type,
-           0                  as data_size
+           c.create_ts                            as create_ts,
+           c.modify_ts                            as modify_ts,
+           'collection'                           as type,
+           0                                      as data_size,
+           a.access_type_id                       as access_type_id
       FROM r_coll_main c
       JOIN r_objt_access a ON c.coll_id = a.object_id
-      JOIN r_user_main u ON a.user_id = u.user_id,
-           user_lookup,
-           parent
-     WHERE u.user_id IN ( SELECT g.group_user_id
-                           FROM  r_user_group g,
-                                 user_lookup
-                           WHERE g.user_id = user_lookup.user_id )
-       AND c.parent_coll_name = parent.coll_name
-       AND c.coll_type != 'linkPoint'
-  ORDER BY base_name ASC"
+      JOIN parent p ON c.parent_coll_name = p.coll_name
+     WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )"
 
    :count-files-in-folder
-   "WITH user_lookup AS ( SELECT u.user_id as user_id FROM r_user_main u WHERE u.user_name = ?),
-         parent AS ( SELECT c.coll_id as coll_id, c.coll_name as coll_name FROM r_coll_main c WHERE c.coll_name = ? )
-    SELECT COUNT(DISTINCT d.data_name)
-      FROM r_data_main d
-      JOIN r_coll_main c ON c.coll_id = d.coll_id
-      JOIN r_objt_access a ON d.data_id = a.object_id
-      JOIN r_user_main u ON a.user_id = u.user_id,
-           user_lookup,
-           parent
-     WHERE u.user_id IN ( SELECT g.group_user_id
-                            FROM r_user_group g,
-                                 user_lookup
-                           WHERE g.user_id = user_lookup.user_id )
-       AND c.coll_id = parent.coll_id"
+   "WITH user_groups AS ( SELECT g.*
+                            FROM r_user_main u
+                            JOIN r_user_group g ON g.user_id = u.user_id
+                           WHERE u.user_name = ?
+                             AND u.zone_name = ? ),
+
+         parent      AS ( SELECT * from r_coll_main
+                           WHERE coll_name = ? ),
+
+         data_objs   AS ( SELECT d.* FROM r_data_main d
+                            JOIN r_coll_main c ON c.coll_id = d.coll_id
+                           WHERE c.coll_id = ( SELECT coll_id FROM parent ))
+
+      SELECT d.data_id FROM r_objt_access a
+        JOIN data_objs d ON a.object_id = d.data_id
+       WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
+         AND a.object_id IN ( SELECT data_id from data_objs )"
 
    :count-folders-in-folder
-   "WITH user_lookup AS ( SELECT u.user_id as user_id FROM r_user_main u WHERE u.user_name = ?),
-         parent AS ( SELECT c.coll_id as coll_id, c.coll_name as coll_name FROM r_coll_main c WHERE c.coll_name = ? )
-    SELECT COUNT(DISTINCT c.coll_name)
-      FROM r_coll_main c
+   "WITH user_groups AS ( SELECT g.*
+                            FROM r_user_main u
+                            JOIN r_user_group g ON g.user_id = u.user_id
+                           WHERE u.user_name = ?
+                             AND u.zone_name = ? ),
+
+         parent      AS ( SELECT * from r_coll_main
+                           WHERE coll_name = ? )
+
+    SELECT count(c.coll_id) FROM r_coll_main c
       JOIN r_objt_access a ON c.coll_id = a.object_id
-      JOIN r_user_main u ON a.user_id = u.user_id,
-           user_lookup,
-           parent
-     WHERE u.user_id IN ( SELECT g.group_user_id
-                            FROM  r_user_group g,
-                                  user_lookup
-                            WHERE g.user_id = user_lookup.user_id )
-       AND c.parent_coll_name = parent.coll_name
+      JOIN parent p ON c.parent_coll_name = p.coll_name
+     WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
        AND c.coll_type != 'linkPoint'"
 
    :file-permissions
@@ -199,15 +205,18 @@
        AND d.data_name = ?"
 
    :paged-folder-listing
-   "WITH
-       user_groups AS ( SELECT g.*
-                          FROM r_user_main u
-                          JOIN r_user_group g ON g.user_id = u.user_id
-                         WHERE u.user_name = ?
-                           AND u.zone_name = ? ),
+   "WITH user_groups AS ( SELECT g.*
+                            FROM r_user_main u
+                            JOIN r_user_group g ON g.user_id = u.user_id
+                           WHERE u.user_name = ?
+                             AND u.zone_name = ? ),
 
-       parent      AS ( SELECT * from r_coll_main
-                         WHERE coll_name = ? )
+         parent      AS ( SELECT * from r_coll_main
+                           WHERE coll_name = ? ),
+
+         data_objs   AS ( SELECT d.* FROM r_data_main d
+                            JOIN r_coll_main c ON c.coll_id = d.coll_id
+                           WHERE c.coll_id = ( SELECT coll_id FROM parent ))
 
     SELECT DISTINCT p.full_path,
                     p.base_name,
@@ -223,11 +232,11 @@
                   'dataobject'                      as type,
                   (array_agg(d.data_size))[1]       as data_size,
                   (array_agg(a.access_type_id))[1]  as access_type_id
-             FROM r_data_main d
+             FROM r_objt_access a
+             JOIN data_objs d ON a.object_id = d.data_id
              JOIN r_coll_main c ON c.coll_id = d.coll_id
-             JOIN r_objt_access a ON d.data_id = a.object_id
-            WHERE c.coll_id = ( SELECT coll_id FROM parent )
-              AND a.user_id IN ( SELECT group_user_id FROM user_groups )
+            WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
+              AND a.object_id IN ( SELECT data_id FROM data_objs )
          GROUP BY c.coll_name, d.data_name
             UNION
            SELECT c.parent_coll_name                     as dir_name,
