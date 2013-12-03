@@ -20,7 +20,8 @@
                                       (get-folder-path-clause)))))
 
 (defn filter-files->query-args
-  "Converts the list of filter-files for use as arguments in the count-filtered-items-in-folder query."
+  "Converts the list of filter-files for use as arguments in the count-filtered-items-in-folder
+   query."
   [filter-files]
   (map (partial str "%/") filter-files))
 
@@ -71,7 +72,7 @@
                              AND u.zone_name = ? ),
 
          parent      AS ( SELECT * from r_coll_main
-                           WHERE coll_name = ? )
+                           WHERE coll_name = ? ),
 
          data_objs   AS ( SELECT d.* FROM r_data_main d
                             JOIN r_coll_main c ON c.coll_id = d.coll_id

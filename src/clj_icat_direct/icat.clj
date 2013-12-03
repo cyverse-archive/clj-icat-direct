@@ -38,13 +38,13 @@
 
 (defn number-of-files-in-folder
   "Returns the number of files in a folder that the user has access to."
-  [user folder-path]
-  (-> (run-simple-query :count-files-in-folder user folder-path) first :count))
+  [user zone folder-path]
+  (-> (run-simple-query :count-files-in-folder user zone folder-path) first :count))
 
 (defn number-of-folders-in-folder
   "Returns the number of folders in the specified folder that the user has access to."
-  [user folder-path]
-  (-> (run-simple-query :count-folders-in-folder user folder-path) first :count))
+  [user zone folder-path]
+  (-> (run-simple-query :count-folders-in-folder user zone folder-path) first :count))
 
 (defn number-of-items-in-folder
   "Returns the total number of files and folders in the specified folder that the user has access
@@ -90,8 +90,9 @@
 
 (defn list-folders-in-folder
   "Returns a listing of the folders contained in the specified folder that the user has access to."
-  [user folder-path]
-  (map (partial add-permission user) (run-simple-query :list-folders-in-folder user folder-path)))
+  [user zone folder-path]
+  (map (partial add-permission user)
+       (run-simple-query :list-folders-in-folder user zone folder-path)))
 
 (def sort-columns
   {:type      "p.type"
