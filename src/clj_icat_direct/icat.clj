@@ -52,6 +52,14 @@
   [user zone folder-path]
   (first (run-simple-query :count-items-in-folder user zone folder-path)))
 
+(defn number-of-all-items-under-folder
+  "Returns the total number of files and folders in the specified folder and all
+   sub-folders that the user has access to."
+  [user zone folder-path]
+  (-> (run-simple-query :count-all-items-under-folder user zone folder-path folder-path)
+      (first)
+      (:total)))
+
 (defn number-of-filtered-items-in-folder
   "Returns the total number of files and folders in the specified folder that the user has access to
    but should be filtered in the client."

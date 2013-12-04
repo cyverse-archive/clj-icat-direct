@@ -65,6 +65,35 @@
               WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
                 AND c.coll_type != 'linkPoint' ) AS contents"
 
+   :count-all-items-under-folder
+   "WITH user_groups AS ( SELECT g.*
+                            FROM r_user_main u
+                            JOIN r_user_group g ON g.user_id = u.user_id
+                           WHERE u.user_name = ?
+                             AND u.zone_name = ? ),
+
+         parent      AS ( SELECT * from r_coll_main
+                           WHERE coll_name = ?
+                          UNION
+                          SELECT * from r_coll_main
+                           WHERE coll_name LIKE ? || '/%' ),
+
+         data_objs   AS ( SELECT d.* FROM r_data_main d
+                            JOIN r_coll_main c ON c.coll_id = d.coll_id
+                           WHERE c.coll_id IN ( SELECT coll_id FROM parent ))
+
+    SELECT count(*) AS total
+      FROM ( SELECT d.data_id FROM r_objt_access a
+               JOIN data_objs d ON a.object_id = d.data_id
+              WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
+                AND a.object_id IN ( SELECT data_id from data_objs )
+              UNION
+             SELECT c.coll_id FROM r_coll_main c
+               JOIN r_objt_access a ON c.coll_id = a.object_id
+               JOIN parent p ON c.parent_coll_name = p.coll_name
+              WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
+                AND c.coll_type != 'linkPoint' ) AS contents"
+
    :count-filtered-items-in-folder
    "WITH user_groups AS ( SELECT g.* FROM r_user_main u
                             JOIN r_user_group g ON g.user_id = u.user_id
