@@ -141,7 +141,8 @@
       FROM r_coll_main c
       JOIN r_objt_access a ON c.coll_id = a.object_id
       JOIN parent p ON c.parent_coll_name = p.coll_name
-     WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )"
+     WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
+       AND c.coll_type != 'linkPoint'"
 
    :count-files-in-folder
    "WITH user_groups AS ( SELECT g.*
@@ -280,7 +281,8 @@
              FROM r_coll_main c
              JOIN r_objt_access a ON c.coll_id = a.object_id
              JOIN parent p ON c.parent_coll_name = p.coll_name
-            WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )) AS p
+            WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
+              AND c.coll_type != 'linkPoint') AS p
     ORDER BY p.type ASC, %s %s
        LIMIT ?
       OFFSET ?"})
