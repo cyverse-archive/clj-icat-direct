@@ -13,6 +13,6 @@
                  [korma "0.3.0-RC5"]
                  [org.postgresql/postgresql "9.2-1002-jdbc4"]]
   :repositories [["sonatype-nexus-snapshots"
-                  {:url "https://oss.sonatype.org/content/repositories/snapshots"}]
-                 ["sonatype-nexus-staging"
-                  {:url "https://oss.sonatype.org/service/local/staging/deploy/maven2/"}]])
+                  {:url "https://oss.sonatype.org/content/repositories/snapshots"}]]
+  :deploy-repositories ["sonatype-nexus-staging"
+                        {:url "https://oss.sonatype.org/service/local/staging/deploy/maven2/"}])
