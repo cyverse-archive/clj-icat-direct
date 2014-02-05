@@ -14,5 +14,5 @@
                  [org.postgresql/postgresql "9.2-1002-jdbc4"]]
   :repositories [["sonatype-nexus-snapshots"
                   {:url "https://oss.sonatype.org/content/repositories/snapshots"}]]
-  :deploy-repositories ["sonatype-nexus-staging"
-                        {:url "https://oss.sonatype.org/service/local/staging/deploy/maven2/"}])
+  :deploy-repositories [["sonatype-nexus-staging"
+                         {:url "https://oss.sonatype.org/service/local/staging/deploy/maven2/"}]])
