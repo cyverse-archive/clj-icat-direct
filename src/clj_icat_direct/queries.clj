@@ -53,7 +53,7 @@
                             JOIN r_coll_main c ON c.coll_id = d.coll_id
                            WHERE c.coll_id = ( SELECT coll_id FROM parent ))
 
-    SELECT count(*) AS total
+    SELECT count(DISTINCT *) AS total
       FROM ( SELECT d.data_id FROM r_objt_access a
                JOIN data_objs d ON a.object_id = d.data_id
               WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
@@ -82,7 +82,7 @@
                             JOIN r_coll_main c ON c.coll_id = d.coll_id
                            WHERE c.coll_id IN ( SELECT coll_id FROM parent ))
 
-    SELECT count(*) AS total
+    SELECT count(DISTINCT *) AS total
       FROM ( SELECT d.data_id FROM r_objt_access a
                JOIN data_objs d ON a.object_id = d.data_id
               WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
@@ -107,7 +107,7 @@
                             JOIN r_coll_main c ON c.coll_id = d.coll_id
                            WHERE c.coll_id = ( SELECT coll_id FROM parent ))
 
-    SELECT count(*) AS total_filtered
+    SELECT count(DISTINCT *) AS total_filtered
       FROM ( SELECT d.data_id FROM r_objt_access a
                JOIN data_objs d ON a.object_id = d.data_id
               WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
@@ -130,7 +130,8 @@
          parent      AS ( SELECT * from r_coll_main
                            WHERE coll_name = ? )
 
-    SELECT c.parent_coll_name                     as dir_name,
+    SELECT DISTINCT
+           c.parent_coll_name                     as dir_name,
            c.coll_name                            as full_path,
            regexp_replace(c.coll_name, '.*/', '') as base_name,
            c.create_ts                            as create_ts,
@@ -158,7 +159,7 @@
                             JOIN r_coll_main c ON c.coll_id = d.coll_id
                            WHERE c.coll_id = ( SELECT coll_id FROM parent ))
 
-      SELECT d.data_id FROM r_objt_access a
+      SELECT count(DISTINCT d.data_id) FROM r_objt_access a
         JOIN data_objs d ON a.object_id = d.data_id
        WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
          AND a.object_id IN ( SELECT data_id from data_objs )"
@@ -173,14 +174,14 @@
          parent      AS ( SELECT * from r_coll_main
                            WHERE coll_name = ? )
 
-    SELECT count(c.coll_id) FROM r_coll_main c
+    SELECT count(DISTINCT c.coll_id) FROM r_coll_main c
       JOIN r_objt_access a ON c.coll_id = a.object_id
       JOIN parent p ON c.parent_coll_name = p.coll_name
      WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
        AND c.coll_type != 'linkPoint'"
 
    :file-permissions
-   "SELECT distinct o.access_type_id, u.user_name
+   "SELECT DISTINCT o.access_type_id, u.user_name
       FROM r_user_main u,
            r_data_main d,
            r_coll_main c,
@@ -197,7 +198,7 @@
     OFFSET ?"
 
    :folder-permissions
-   "SELECT a.access_type_id, u.user_name
+   "SELECT DISTINCT a.access_type_id, u.user_name
      FROM r_coll_main c
      JOIN r_objt_access a ON c.coll_id = a.object_id
      JOIN r_user_main u ON a.user_id = u.user_id
@@ -208,7 +209,7 @@
 
    :folder-permissions-for-user
    "WITH user_lookup AS ( SELECT u.user_id as user_id FROM r_user_main u WHERE u.user_name = ?)
-    SELECT a.access_type_id
+    SELECT DISTINCT a.access_type_id
       FROM r_coll_main c
       JOIN r_objt_access a ON c.coll_id = a.object_id
       JOIN r_user_main u ON a.user_id = u.user_id
@@ -221,7 +222,7 @@
    :file-permissions-for-user
    "WITH user_lookup AS ( SELECT u.user_id as user_id FROM r_user_main u WHERE u.user_name = ? ),
               parent AS ( SELECT c.coll_id as coll_id, c.coll_name as coll_name FROM r_coll_main c WHERE c.coll_name = ? )
-    SELECT a.access_type_id
+    SELECT DISTINCT a.access_type_id
       FROM r_data_main d
       JOIN r_coll_main c ON c.coll_id = d.coll_id
       JOIN r_objt_access a ON d.data_id = a.object_id
