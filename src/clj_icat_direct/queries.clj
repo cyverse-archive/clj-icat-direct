@@ -82,13 +82,13 @@
                             JOIN r_coll_main c ON c.coll_id = d.coll_id
                            WHERE c.coll_id IN ( SELECT coll_id FROM parent ))
 
-    SELECT count(DISTINCT *) AS total
-      FROM ( SELECT d.data_id FROM r_objt_access a
+    SELECT count(*) AS total
+      FROM ( SELECT DISTINCT d.data_id FROM r_objt_access a
                JOIN data_objs d ON a.object_id = d.data_id
               WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
                 AND a.object_id IN ( SELECT data_id from data_objs )
               UNION
-             SELECT c.coll_id FROM r_coll_main c
+             SELECT DISTINCT c.coll_id FROM r_coll_main c
                JOIN r_objt_access a ON c.coll_id = a.object_id
                JOIN parent p ON c.parent_coll_name = p.coll_name
               WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
@@ -107,14 +107,14 @@
                             JOIN r_coll_main c ON c.coll_id = d.coll_id
                            WHERE c.coll_id = ( SELECT coll_id FROM parent ))
 
-    SELECT count(DISTINCT *) AS total_filtered
-      FROM ( SELECT d.data_id FROM r_objt_access a
+    SELECT count(*) AS total_filtered
+      FROM ( SELECT DISTINCT d.data_id FROM r_objt_access a
                JOIN data_objs d ON a.object_id = d.data_id
               WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
                 AND a.object_id IN ( SELECT data_id FROM data_objs )
                 AND d.data_name ~ ?
               UNION
-             SELECT c.coll_id FROM r_coll_main c
+             SELECT DISTINCT c.coll_id FROM r_coll_main c
                JOIN r_objt_access a ON c.coll_id = a.object_id
                JOIN parent p ON c.parent_coll_name = p.coll_name
               WHERE a.user_id IN ( SELECT group_user_id FROM user_groups )
