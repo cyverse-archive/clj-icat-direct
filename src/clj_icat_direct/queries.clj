@@ -49,9 +49,9 @@
          parent      AS ( SELECT * from r_coll_main
                            WHERE coll_name = ? ),
 
-         data_objs   AS ( SELECT d.* FROM r_data_main d
-                            JOIN r_coll_main c ON c.coll_id = d.coll_id
-                           WHERE c.coll_id = ( SELECT coll_id FROM parent ))
+         data_objs   AS ( SELECT *
+                            FROM r_data_main
+                           WHERE coll_id = ANY(ARRAY( SELECT coll_id FROM parent )))
 
     SELECT count(*) AS total
       FROM ( SELECT DISTINCT d.data_id FROM r_objt_access a
@@ -78,9 +78,9 @@
                           SELECT * from r_coll_main
                            WHERE coll_name LIKE ? || '/%' ),
 
-         data_objs   AS ( SELECT d.* FROM r_data_main d
-                            JOIN r_coll_main c ON c.coll_id = d.coll_id
-                           WHERE c.coll_id IN ( SELECT coll_id FROM parent ))
+         data_objs   AS ( SELECT *
+                            FROM r_data_main
+                           WHERE coll_id = ANY(ARRAY( SELECT coll_id FROM parent )))
 
     SELECT count(*) AS total
       FROM ( SELECT DISTINCT d.data_id FROM r_objt_access a
@@ -103,9 +103,9 @@
          parent      AS ( SELECT * from r_coll_main
                            WHERE coll_name = ? ),
 
-         data_objs   AS ( SELECT d.* FROM r_data_main d
-                            JOIN r_coll_main c ON c.coll_id = d.coll_id
-                           WHERE c.coll_id = ( SELECT coll_id FROM parent ))
+         data_objs   AS ( SELECT *
+                            FROM r_data_main
+                           WHERE coll_id = ANY(ARRAY( SELECT coll_id FROM parent )))
 
     SELECT count(*) AS total_filtered
       FROM ( SELECT DISTINCT d.data_id FROM r_objt_access a
@@ -155,9 +155,9 @@
          parent      AS ( SELECT * from r_coll_main
                            WHERE coll_name = ? ),
 
-         data_objs   AS ( SELECT d.* FROM r_data_main d
-                            JOIN r_coll_main c ON c.coll_id = d.coll_id
-                           WHERE c.coll_id = ( SELECT coll_id FROM parent ))
+         data_objs   AS ( SELECT *
+                            FROM r_data_main
+                           WHERE coll_id = ANY(ARRAY( SELECT coll_id FROM parent )))
 
       SELECT count(DISTINCT d.data_id) FROM r_objt_access a
         JOIN data_objs d ON a.object_id = d.data_id
@@ -246,9 +246,9 @@
          parent      AS ( SELECT * from r_coll_main
                            WHERE coll_name = ? ),
 
-         data_objs   AS ( SELECT d.* FROM r_data_main d
-                            JOIN r_coll_main c ON c.coll_id = d.coll_id
-                           WHERE c.coll_id = ( SELECT coll_id FROM parent ))
+         data_objs   AS ( SELECT *
+                            FROM r_data_main
+                           WHERE coll_id = ANY(ARRAY( SELECT coll_id FROM parent )))
 
     SELECT DISTINCT p.full_path,
                     p.base_name,
